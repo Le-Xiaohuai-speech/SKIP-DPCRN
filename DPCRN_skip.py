@@ -333,7 +333,4 @@ if __name__ == '__main__':
 
     config_dict = yaml.load(result)
     model = DPCRN_skip_model(batch_size = 1, length_in_s =5, lr = 1e-3, config = config_dict)
-
     model.build_DPCRN_model()
-    model.model.load_weights('D:/codes/我的项目/期刊/VQDPCRN/实验结果/phasen 实验结果新/weights/WSJ_base_nomap_phasen_allskip_1e-4/models_experiment_new_base_nomap_skipgru_allskip_0_0_1e-4_newmodel_18_0.021525.h5')
-    model.enhancement('D:/codes/test_audio/mix/440C020a_mix.wav')
