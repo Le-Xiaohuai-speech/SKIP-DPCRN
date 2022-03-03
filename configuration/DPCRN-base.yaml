@@ -1,0 +1,38 @@
+name: DPCRN-base
+trainer:
+    init_lr: 1e-3
+    reduce_patience: 10
+    early_stop: 20
+    optimizer: adam
+    max_epochs: 200
+    seed: 42
+network:
+    filter_size:   [32,32,32,64,128]
+    kernel_size:   [[1,5],[1,3],[1,3],[1,3],[1,3]]
+    strides:       [[1,2],[1,2],[1,2],[1,1],[1,1]]
+    encoder_padding:       [[0,2],[0,1],[0,1],[1,1],[1,1]]
+    decoder_padding:       ['same', 'same', 'same', 'same', 'valid']
+    output_cut:  2
+    N_DPRNN: 2
+    DPRNN:
+        intra_hidden_size: 128
+        inter_hidden_size: 128
+    use_CuDNNGRU: False
+    activation:  softplus # or sigmoid
+    input_norm: batchnorm  # or instantlayernorm
+test:
+    test_data_dir: ''
+stft:
+    fs: 16000
+    block_len: 512
+    block_shift: 256
+    window: sine
+    N_FFT: 512
+database:
+    DNS_path: '' # the path of the DNS data
+    WSJ_path: '' # the path of the WSJ data
+    RIRs_path: ''# the path of the RIR data
+    SNR: [-5,5]
+    reverb_rate: 0.5
+    spec_aug_rate: 0.3
+    data_path: './temp'
