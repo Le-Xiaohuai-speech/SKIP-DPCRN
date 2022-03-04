@@ -20,9 +20,9 @@ class Trainer():
         print(args)    
         self.mode = args.mode
         if self.mode == 'train':
-            self.bs = args.bs
+            self.batch_size = args.bs
         elif self.mode == 'test':
-            self.bs = 1
+            self.batch_size = 1
         self.lr = args.lr
         self.second = args.second
         self.ckpt = args.ckpt
@@ -30,12 +30,13 @@ class Trainer():
         self.output_dir = args.output_dir
         self.experiment_name = args.experiment_name
         self.config_dict = self.read_yaml(args.config)
-        
+        self.max_epochs = self.config_dict['trainer']['max_epochs']
+
         if self.config_dict['name'] == 'DPCRN-base':
-            self.dpcrn_model = DPCRN_model(batch_size = self.bs, length_in_s = self.second, lr = self.lr, config = self.config_dict)
+            self.dpcrn_model = DPCRN_model(batch_size = self.batch_size, length_in_s = self.second, lr = self.lr, config = self.config_dict)
             self.dpcrn_model.build_DPCRN_model()
         elif self.config_dict['name'] == 'DPCRN-skip':
-            self.dpcrn_model = DPCRN_skip_model(batch_size = self.bs, length_in_s = self.second, lr = self.lr, config = self.config_dict)
+            self.dpcrn_model = DPCRN_skip_model(batch_size = self.batch_size, length_in_s = self.second, lr = self.lr, config = self.config_dict)
             self.dpcrn_model.build_DPCRN_model()            
         else:
             pass
@@ -50,11 +51,14 @@ class Trainer():
                                                 fs = self.config_dict['stft']['fs'],
                                                 n_fft = self.config_dict['stft']['N_FFT'],
                                                 n_hop = self.config_dict['stft']['block_shift'],
-                                                batch_size = self.bs,
+                                                batch_size = self.batch_size,
                                                 sd = self.config_dict['trainer']['seed'],
                                                 add_reverb = True,
-                                                reverb_rate = self.config_dict,
-                                                spec_aug_rate = self.config_dict)
+                                                reverb_rate = self.config_dict['database']['reverb_rate'],
+                                                spec_aug_rate = self.config_dict['database']['spec_aug_rate'])
+            
+            self.train_model(runName = args.experiment_name, data_generator = self.data_generator)
+            
         elif self.mode == 'test':
             if self.ckpt:
                 self.dpcrn_model.model_inference.load_weights(self.ckpt)
@@ -99,7 +103,7 @@ class Trainer():
                                        )
 
         # create data generator for training data
-        self.model.model.fit_generator(data_generator.generator(batch_size = self.batch_size,validation = False), 
+        self.dpcrn_model.model.fit_generator(data_generator.generator(batch_size = self.batch_size,validation = False), 
                                                         validation_data = data_generator.generator(batch_size =self.batch_size,validation = True),
                                                         epochs = self.max_epochs, 
                                                         steps_per_epoch = data_generator.train_length//self.batch_size,
@@ -126,6 +130,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
-    #os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     
     trainer = Trainer(args)
