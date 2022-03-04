@@ -69,7 +69,7 @@ class Trainer():
         result = f.read()
         print(result)
         # 转换成字典读出来
-        config_dict = yaml.load(result)
+        config_dict = yaml.load(result, Loader = yaml.Loader)
         return config_dict
     
     def train_model(self, runName, data_generator):
