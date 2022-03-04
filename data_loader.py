@@ -110,6 +110,7 @@ class data_generator():
         # calculate the length of each sample after iSTFT
         self.points_per_sample = ((self.L - n_fft) // n_hop) * n_hop + n_fft
 
+        self.SNR_range = SNR_range
         self.add_reverb = add_reverb
         self.reverb_rate = reverb_rate
         self.spec_aug_rate = spec_aug_rate
@@ -120,14 +121,16 @@ class data_generator():
          
         self.noise_dir = os.path.join(self.DNS_dir,'noise')
         self.noise_file_list = os.listdir(self.noise_dir)
-        
-        self.train_wsj_dir, self.valid_wsj_dir = self.preproccess(self.WSJ_dir, temp_data_dir)
-        
+        if not os.path.exists(temp_data_dir):
+            self.train_wsj_dir, self.valid_wsj_dir = self.preproccess(self.WSJ_dir, temp_data_dir)
+        else:
+            self.train_wsj_dir = os.path.join(temp_data_dir,'si_tr_s')
+            self.valid_wsj_dir = os.path.join(temp_data_dir,'si_dt_05')
+
         self.train_wsj_data = librosa.util.find_files(self.train_wsj_dir,ext='npy')
         self.valid_wsj_data = librosa.util.find_files(self.valid_wsj_dir,ext='npy')
         np.random.shuffle(self.train_wsj_data)
         np.random.shuffle(self.valid_wsj_data)
-
 
         if RIR_dir is not None:
             self.rir_dir = RIR_dir
@@ -137,6 +140,7 @@ class data_generator():
         
         self.train_length = len(self.train_wsj_data)
         self.valid_length = len(self.valid_wsj_data)
+        print('there are {} clips for training, and {} clips for validation.'.format(self.train_length, self.valid_length))
         
     def preproccess(self, WSJ_dir, data_dir):
         '''
@@ -158,14 +162,15 @@ class data_generator():
         valid_N_samples = 0
         
         for wav in train_wavs:
-            train_N_samples += int(sf.info(wav).duration * self.fs)
+            train_N_samples += round(sf.info(wav).duration * self.fs)
         for wav in valid_wavs:
-            valid_N_samples += int(sf.info(wav).duration * self.fs)
+            valid_N_samples += round(sf.info(wav).duration * self.fs)
         
         temp_train = np.zeros(train_N_samples, dtype = 'int16')
         N_samples = train_N_samples // self.L
         begin = 0
-        for wav in train_wavs:
+        print('prepare clean data...\n')
+        for wav in tqdm.tqdm(train_wavs):
             s = sf.read(wav)[0]
             s = s / np.max(abs(s))
             temp_train[begin:begin+len(s)] = s
@@ -180,7 +185,7 @@ class data_generator():
         N_samples = valid_N_samples // self.L
         
         begin = 0
-        for wav in valid_wavs:
+        for wav in tqdm.tqdm(valid_wavs):
             s = sf.read(wav)[0]
             s = s / np.max(abs(s))
             temp_valid[begin:begin+len(s)] = s
@@ -210,7 +215,7 @@ class data_generator():
 
             rir_f_list = np.random.choice(self.rir_list, batch_size) 
             noise_f_list = np.random.choice(self.noise_file_list,batch_size)
-        
+            
             for i in range(batch_size):
 
                 SNR = np.random.uniform(self.SNR_range[0],self.SNR_range[1])
@@ -225,15 +230,16 @@ class data_generator():
                 
                 noise_f = noise_f_list[i]
                 Begin_N = int(np.random.uniform(0, 30 - self.length_per_sample)) * self.fs
-
+                # read clean speech and noises
                 clean_s = np.load(clean_f) / 32768.0
-                noise_s = sf.read(noise_f, dtype = 'float32',start= Begin_N,stop = Begin_N + self.L)[0]
+                noise_s = sf.read(os.path.join(self.noise_dir,noise_f), dtype = 'float32',start= Begin_N,stop = Begin_N + self.L)[0]
+                
                 # high pass filtering
                 clean_s = add_pyreverb(clean_s, fir)
-
+                # spectrum augmentation
                 if np.random.rand() < self.spec_aug_rate:
                     clean_s = spec_augment(clean_s)
-
+                # add reverberation
                 if self.add_reverb:
                     if  np.random.rand() < self.reverb_rate:
                         rir_s = sf.read(rir_f_list[i],dtype = 'float32')[0]
@@ -241,9 +247,9 @@ class data_generator():
                             rir_s = rir_s[:,0]
                         if clean_f.split('_')[0] == 'clean':
                             clean_s = add_pyreverb(clean_s, rir_s)
-                            
+                # mix the clean speech and the noise
                 clean_s,noise_s,noisy_s,_ = mk_mixture(clean_s, noise_s, SNR, eps = 1e-8)
-                
+                # rescaling
                 batch_clean[i,:] = clean_s *gain
                 batch_noisy[i,:] = noisy_s *gain
                 batch_gain[i] = gain
@@ -268,6 +274,9 @@ class data_generator():
             
 if __name__ == '__main__':
 
-    dg = data_generator()
+    dg = data_generator(DNS_dir = '/data/ssd1/xiaohuai.le/DNS_data1/DNS_data', 
+                        WSJ_dir = '/data/hdd0/xiaohuaile/g6_data/Speech_database/WSJ/wsj0/',
+                        RIR_dir = '/data/ssd1/xiaohuai.le/RIR_database/impulse_responses/',
+                        temp_data_dir = './temp_data',)
 
 
