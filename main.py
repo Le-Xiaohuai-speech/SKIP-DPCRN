@@ -68,11 +68,10 @@ class Trainer():
                     self.dpcrn_model.test_on_dataset(args.test_dir, args.output_dir, args.gamma)
                     
     def read_yaml(self, file):
-        
+        # read the configuration file
         f = open(file,'r',encoding='utf-8')
         result = f.read()
         print(result)
-        # 转换成字典读出来
         config_dict = yaml.load(result, Loader = yaml.Loader)
         return config_dict
     
