@@ -1,5 +1,5 @@
 # SKIP-DPCRN
-Implementation of Skip-DPCRN (paper:)
+Implementation of the DPCRN model with skipping strategy in the submitted manuscript for IEEE/ACM TASLP.
 
 # Requirements
 
