@@ -1,5 +1,5 @@
 # SKIP-DPCRN
-Implementation of the DPCRN model with skipping strategy in the submitted manuscript for IEEE/ACM TASLP.
+Implementation of the DPCRN model with skipping strategy in the accepted manuscript for IEEE/ACM TASLP.
 
 # Requirements
 tensorflow>=1.14,
